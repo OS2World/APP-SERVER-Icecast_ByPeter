@@ -1,0 +1,17 @@
+FreeBSD i686 3.0-RELEASE with gcc 2.7.2.1
+SunOS 5.6 Generic_105181-10 sun4m sparc with gcc 2.8.1
+OSF1 V4.0 alpha with gcc 2.8.1
+HP-UX B.10.20 E 9000/712 with gcc 2.8.1
+SunOS 5.6 Generic_105182-11 i86pc i386 i86pc with gcc 2.8.1
+Linux 2.2.1-ac1 SMP i686 with pgcc-2.91.60 (egcs-1.1.1 release)
+Linux 2.2.1-ac1 SMP i686 (glibc 2.0.108) with egcs-2.91.60 19981201 (egcs-1.1.1 release)
+Linux 2.2.1-ac1 SMP i686 (glibc 2.0.108) with gcc 2.8.1
+Linux 2.2.1-ac1 SMP i686 (glibc 2.0.108) with gcc 2.7.2.3
+Linux 2.0.35 i686 with gcc 2.7.2.3
+BSD/OS 3.1 BSDI i386 with gcc 2.7.2.1
+
+
+If you have success with the icecast distribution on more platforms than
+these, email us and send us info about your platform similar to the
+listing above.  Thanks!
+

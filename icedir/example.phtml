@@ -1,0 +1,24 @@
+<?
+	require ("functions/functions.phps");
+
+	db_connect();
+
+	echo "<table border=0>\n";
+
+	$result = mysql_query("select * from server_tbl where touched=1 order by currentusers desc");
+
+	echo "<tr>";
+	echo "<td><font face=\"Lucida,Verdana,Helvetica,Arial\" color=\"#000000\"><small>URL</small></font></td>";
+	echo "<td><font face=\"Lucida,Verdana,Helvetica,Arial\" color=\"#000000\"><small>Genre</small></font></td>";
+	echo "<td><font face=\"Lucida,Verdana,Helvetica,Arial\" color=\"#000000\"><small>Bitrate</small></font></td>";
+	echo "</tr>";
+
+	while ($row = mysql_fetch_object($result)) {
+		echo "<tr>";
+		echo "<td><font face=\"Lucida,Verdana,Helvetica,Arial\" color=\"#000000\"><small><a href=\"/cgi-bin/gen-playlist.pls?server=$row->ip&port=$row->port\">http://$row->ip:$row->port/</a></small></font></td>";
+		echo "<td><font face=\"Lucida,Verdana,Helvetica,Arial\" color=\"#000000\"><small>$row->genre</small></font></td>";
+		echo "<td><font face=\"Lucida,Verdana,Helvetica,Arial\" color=\"#000000\"><small>$row->bitrate</small></font></td>";
+		echo "</tr>";
+	}
+	echo "</table>\n";
+?>

@@ -1,0 +1,59 @@
+#
+# radjo_ap.tcl v0.1
+#
+# Author: Rikard Bosnjakovic <bos@hack.org>
+# Co-Author: Alexander Haväng <eel@musiknet.se>
+
+bind pub - !radio radjoAP
+bind pub - !playlist playlistAP
+#bind pub m !skip skip_AP
+
+set fil "/tmp/shout.cue"
+set playlist "/tmp/shout.playlist"
+
+proc skip_AP { nick uhost handle chan arg } {
+	exec "/usr/bin/killall -2 shout"
+}
+
+proc playlistAP { nick uhost handle chan arg } {
+	global playlist
+	global fil
+	set filen [open $fil r]
+	set line [split [read $filen] \n]
+	set start_index [lindex $line 5]
+	close $filen
+	set count 1
+
+	set howmany [lindex $arg 0]
+	if {$howmany > 10} then {
+		putserv "privmsg $chan :$nick: Nej nej, jävla ap, inte så mycket!"
+	} else {
+		set filen [open $playlist r]
+		set line [read $filen]
+		set composite_line [split $line \n]
+		set range [lrange $composite_line $start_index end]
+		foreach a $range {
+			if {$count > $howmany} then {
+				break;
+			}
+			if {[string length $a] > 3} then {
+							putserv "privmsg $chan :$count: $a"
+			}
+			set count [expr $count + 1]
+		}
+	}
+}
+
+proc radjoAP { nick uhost handle chan rest } {
+  global fil
+
+  set filen [open $fil r]
+	set line [read $filen]
+	set composite_line [split $line \n]
+	set name [lindex $composite_line 0]
+	set time [lindex $composite_line 3]
+	set per [lindex $composite_line 4]
+  putserv "privmsg $chan :Now playing from $name \[$time\], $per% done."
+  close $filen
+}
+

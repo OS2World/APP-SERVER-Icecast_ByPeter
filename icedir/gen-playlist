@@ -1,0 +1,7 @@
+<?
+  header("Content-type: audio/x-scpls");
+
+  print "[playlist]\n";
+  print "NumberOfEntries=15\n";
+  print "File1=http://$server:$port/\n";
+?>

@@ -1,0 +1,25 @@
+The following people have been involved in icecast development:
+
+Main developers:
+Jack Moffitt	<jack@linuxpower.org>
+Barath Raghavan	<barath@linuxpower.org>
+Alexander Haväng <eel@musiknet.se>
+
+These people have also contributed patches/testing:
+
+Wolfram Andreas Richter <wrichter@de.ibm.com>
+ - AIX fix in sock.c
+Steve Shreeve <shreeve@uci.edu>
+ - iceplay processor usage fix
+Edward Rudd <eddie@omegaware.com>
+ - iceplay quirk fix (using IO::Socket)
+Patrid Rådman <patrik@iki.fi>:
+ - for pointing out that linux signal() resets the state of the signal
+   handler, when raised. Also for smoothing out the read/send loop to make it
+   work better with fifos.
+Kit Knox <kit@connectnet.com>:
+ - For the neat prebuffering in listen.c.
+
+rand.c was written by Erik Greenwald <br0ke@math.smsu.edu>
+mpeg.c is a C++->C port from <slicer@bimbo.hive.no>'s mp3info package.
+

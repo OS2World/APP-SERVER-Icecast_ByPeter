@@ -1,0 +1,86 @@
+i c e d i r
+ ` ` ` ` `
+
+Usage
+~~~~~
+The files addsrv, tchsrv, remsrv, and gen-playlist allow you to provide
+directory services for users of icecast.  functions.phps provides a simple
+database connection function.  These scripts are written in PHP and are
+currently set up to use a mysql database (although this can be easily
+changed). These should then be placed in the cgi-bin directory of the root
+directory tree of your webserver.  To make sure that the server executes
+the files (since they do not have the standard php script filename
+extensions) you can do something like this in your apache access.conf
+file:
+
+<Directory /usr/local/apache/share/htdocs/cgi-bin>
+...
+ForceType application/x-httpd-php3
+...
+</Directory>
+
+You should also setup a table in your database using server_tbl.sql.  Then
+you just need to setup the right permissions for your database and  make
+the appropriate changes in functions.phps.
+
+Another note is that you can't use a name based virtual host for this
+purpose - you need to use a ip based virtual host or a completely new host
+to handle these directory services.
+
+How does it work?
+~~~~~~~~~~~~~~~~~
+A server using Icedir (such as icecast.linuxpower.org) works almost the
+same as a shoutcast directory server (such as yp.shoutcast.com).
+
+To add a server to the directory:
+- The server connects to the directory, port 80
+- The server sends the following request(note that this is directly from
+directory.c):
+
+GET /cgi-bin/addsrv?v=1&m=%i&br=%i&p=%i&t=%s&g=%s&url=%s HTTP/1.0\n\n
+
+where m is the maximum number of clients, br is the bitrate, p is the
+port, t is the server's title, g is genre, and url is the url of your
+server.
+- The directory will respond:
+
+icy-response: ack
+icy-id: 123
+icy-tchfrq: 5
+
+where the icy-response is ack if sucessful, or nak if unsucessful.  icy-id
+is the id assigned to this server for touching or removal, and icy-tchfrq
+is the number of minutes to wait between touches.
+
+To touch the directory:
+- The server connects to the directory, port 80  
+- The server sends the following request(note that this is directly from
+directory.c):
+
+GET /cgi-bin/tchsrv?id=%i&p=%i&li=%i&alt=0 HTTP/1.0\n\n
+
+where id is the id assigned to the server, p is the port, and li is the
+number of listeners, and alt is unused at this point.
+
+To remove the server from the directory:
+- The server connects to the directory, port 80
+- The server sends the following request(note that this is directly from
+directory.c):
+
+GET /cgi-bin/remsrv?id=%i&p=%i HTTP/1.0\n\n
+
+where id is the assigned id, and port is the server port.
+
+gen-playlist just generates a winamp playlist so that winamp will
+automatically open and start streaming from the url.  You call
+gen-playlist like this:
+
+<a href="/cgi-bin/gen-playlist?server=0.0.0.0&port=8000"> 
+
+Be sure to fill in the correct info.
+
+contacts and webpage
+~~~~~~~~~~~~~~~~~~~~
+The main webpage for icecast is http://icecast.linuxpower.org
+Please send any suggestions, bugfixes, or anything else to
+icecast@linuxpower.org

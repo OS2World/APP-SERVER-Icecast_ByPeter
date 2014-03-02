@@ -1,0 +1,41 @@
+# Generated automatically from Makefile.in by configure.
+# Makefile.in, really nifty.
+
+CC = gcc
+CFLAGS = -g -O2
+LDFLAGS =  -Zcrtdll -Zbin-files -lsocket -lcompat
+
+SHELL=/bin/sh
+
+srcdir = .
+
+DEFS = -I. -DHAVE_CONFIG_H
+
+COMPILE_CFLAGS=$(CFLAGS) $(DEFS)
+
+all: shout.exe listen.exe config.h
+
+config.h: config.h.OS2
+	cp -p config.h.OS2 config.h
+
+shout.exe: shout.c rand.o mpeg.o configfile.o
+	$(CC) $(COMPILE_CFLAGS) -o shout.exe shout.c rand.o mpeg.o configfile.o $(LDFLAGS)
+
+configfile.o: configfile.c
+	$(CC) $(COMPILE_CFLAGS) -c -o configfile.o configfile.c
+
+mpeg.o: mpeg.c
+	$(CC) $(COMPILE_CFLAGS) -c -o mpeg.o mpeg.c
+
+rand.o: rand.c
+	$(CC) $(COMPILE_CFLAGS) -c -o rand.o rand.c
+
+listen.exe: listen.c
+	$(CC) $(COMPILE_CFLAGS) -o listen.exe listen.c $(LDFLAGS)
+
+.PHONY: clean 
+
+clean:
+	rm -f shout.exe listen.exe core rand.o mpeg.o configfile.o
+
+

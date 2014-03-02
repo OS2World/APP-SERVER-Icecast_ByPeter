@@ -1,0 +1,5 @@
+/* iceplay/config.h.  Generated automatically by configure.  */
+/* config.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* Define if you have the snprintf function.  */
+#define HAVE_SNPRINTF 1

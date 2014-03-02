@@ -1,0 +1,1221 @@
+diff -bcr icecast-1.0.0/directory.c icecast-1.0.0-OS2/directory.c
+*** icecast-1.0.0/directory.c   Tue Feb 16 22:11:04 1999
+--- icecast-1.0.0-OS2/directory.c       Thu Feb 11 16:47:20 1999
+***************
+*** 40,45 ****
+--- 40,54 ----
+          return temp;
+  }
+
++ int directory_gotserver(server_info_t *info) {
++   if (strlen(info->directory_server) > 0 &&
++       !strncmp(info->directory_server, "-", 1) &&
++       !strncmp(info->directory_server, "none", 4))
++     return 1;
++   else
++     return 0;
++ }
++
+  void directory_add(server_info_t *info)
+  {
+          int sockfd, error, err;
+***************
+*** 49,54 ****
+--- 58,66 ----
+          error = err = 0;
+          response = NULL;
+
++         if (!directory_gotserver(info))
++           return;
++
+          if ((sockfd = sock_connect(info->directory_server, 80)) != -1) {
+                  sock_write(sockfd, "GET /cgi-bin/addsrv?v=1&m=%i&br=%i&p=%i&t=%s&g=%s&url=%s HTTP/1.0\n\n", info->max_clients, info->bitrate, info->port, url_encode(info->name), url_encode(info->genre), url_encode(info->url));
+
+***************
+*** 91,96 ****
+--- 103,111 ----
+          error = err = 0;
+          response = NULL;
+
++         if (!directory_gotserver(info))
++           return;
++
+          if ((sockfd = sock_connect(info->directory_server, 80)) != -1) {
+                  sock_write(sockfd, "GET /cgi-bin/tchsrv?id=%i&p=%i&li=%i&alt=0 HTTP/1.0\n\n", info->server_id, info->port, info->num_clients);
+
+***************
+*** 128,133 ****
+--- 143,151 ----
+          error = err = 0;
+          response = NULL;
+
++         if (!directory_gotserver(info))
++           return;
++
+          if ((sockfd = sock_connect(info->directory_server, 80)) != -1) {
+                  sock_write(sockfd, "GET /cgi-bin/remsrv?id=%i&p=%i HTTP/1.0\n\n", info->server_id, info->port);
+
+diff -bcr icecast-1.0.0/directory.h icecast-1.0.0-OS2/directory.h
+*** icecast-1.0.0/directory.h   Tue Feb 16 22:11:04 1999
+--- icecast-1.0.0-OS2/directory.h       Thu Feb 11 16:46:52 1999
+***************
+*** 30,35 ****
+--- 30,36 ----
+  #include "log.h"
+
+  char *url_encode(char *string);
++ int directory_gotserver(server_info_t *info);
+  void directory_add(server_info_t *info);
+  void directory_touch();
+  void directory_remove();
+diff -bcr icecast-1.0.0/iceplay/listen.c icecast-1.0.0-OS2/iceplay/listen.c
+*** icecast-1.0.0/iceplay/listen.c      Tue Feb 16 22:11:28 1999
+--- icecast-1.0.0-OS2/iceplay/listen.c  Sun Feb 21 00:37:44 1999
+***************
+*** 37,44 ****
+  #include <errno.h>
+  #include "shout.h"
+
+- extern int errno;
+-
+  /* Set this to something optimal */
+  #define LBUFSIZE 8192
+
+--- 37,42 ----
+***************
+*** 73,93 ****
+    int contactport = 0;
+    struct hostent *hp;
+    struct sockaddr_in name;
+
+!   if ((argc < 3) || (argc == 4))
+      {
+       if ((argc > 1 ) && (strncmp (argv[1], "-v", 2) == 0))
+         {
+         printf ("listen version 0.1.3 <eel@musiknet.se>\n");
+         exit (2);
+         }
+!      else if ((argc > 1) && strncmp (argv[1], "http://", 7) == 0)
+         {
+         host_n_port_t *hp = get_url_host_and_port (argv[1]);
+         contacthost = hp->host;
+         contactport = hp->port;
+         }
+!      else
+         {
+         fprintf (stderr,
+                  "Usage: %s <hostname> <port> [<proxy> <proxyport>].\n",
+--- 71,97 ----
+    int contactport = 0;
+    struct hostent *hp;
+    struct sockaddr_in name;
++   int keep_alive;
++   int rcv_buf;
++
++ #ifdef __EMX__
++   setmode(1, O_BINARY);
++ #endif
+
+!   if (argc <= 4)
+      {
+       if ((argc > 1 ) && (strncmp (argv[1], "-v", 2) == 0))
+         {
+           printf ("listen version 0.1.3 <eel@musiknet.se>\n");
+           exit (2);
+         }
+!      else if ((argc > 1 ) && strncmp (argv[1], "http://", 7) == 0)
+         {
+           host_n_port_t *hp = get_url_host_and_port (argv[1]);
+           contacthost = hp->host;
+           contactport = hp->port;
+         }
+!      else if (argc <= 2)
+         {
+           fprintf (stderr,
+                    "Usage: %s <hostname> <port> [<proxy> <proxyport>].\n",
+***************
+*** 119,125 ****
+    /* Create socket */
+    if ((s = socket (AF_INET, SOCK_STREAM, 6)) < 0)
+      {
+!       perror ("socket:");
+        exit (1);
+      }
+
+--- 123,129 ----
+    /* Create socket */
+    if ((s = socket (AF_INET, SOCK_STREAM, 6)) < 0)
+      {
+!       perror ("socket");
+        exit (1);
+      }
+
+***************
+*** 135,154 ****
+    if (connect (s, (struct sockaddr *) &name, len) < 0)
+      {
+        fprintf (stderr, "Could not connect to %s.\n", contacthost);
+!       perror ("connect:");
+        exit (1);
+      }
+
+    signal (SIGPIPE, s1gnal);
+    signal (SIGINT, s1gnal);
+
+!   {
+!     int tmp = 1;
+!     setsockopt (s, SOL_SOCKET, SO_KEEPALIVE, &tmp, sizeof (tmp));
+!     tmp = 100000;
+!     setsockopt (s, SOL_SOCKET, SO_RCVBUF, &tmp, sizeof (tmp));
+      fcntl (s, F_SETFL, O_NONBLOCK);
+!   }
+
+    /* Read from standard input and put on the socket */
+    fprintf (stderr, "Sending request...\n");
+--- 139,158 ----
+    if (connect (s, (struct sockaddr *) &name, len) < 0)
+      {
+        fprintf (stderr, "Could not connect to %s.\n", contacthost);
+!       perror ("connect");
+        exit (1);
+      }
+
+    signal (SIGPIPE, s1gnal);
+    signal (SIGINT, s1gnal);
+
+!   keep_alive = 1;
+!   setsockopt (s, SOL_SOCKET, SO_KEEPALIVE, &keep_alive, sizeof(keep_alive));
+!   rcv_buf = 100000;
+!   setsockopt (s, SOL_SOCKET, SO_RCVBUF, &rcv_buf, sizeof(rcv_buf));
+! #ifndef __EMX__
+    fcntl (s, F_SETFL, O_NONBLOCK);
+! #endif
+
+    /* Read from standard input and put on the socket */
+    fprintf (stderr, "Sending request...\n");
+***************
+*** 170,176 ****
+    fprintf (stderr, "Reading response..\n");
+    /* Make sure we read LBUFSIZE before we go on */
+    n = 0;
+!   while (n != LBUFSIZE)
+      {
+        errno = 0;
+        len = read (s, header + n, LBUFSIZE - n);
+--- 174,180 ----
+    fprintf (stderr, "Reading response..\n");
+    /* Make sure we read LBUFSIZE before we go on */
+    n = 0;
+!   while (n < LBUFSIZE)
+      {
+        errno = 0;
+        len = read (s, header + n, LBUFSIZE - n);
+***************
+*** 205,211 ****
+      n = strip_shout_header (header, n);
+
+    /* This little prebuffer is a contribution from <kit@connectnet.com> */
+!   while (n != PREBUFFER)
+      {
+        errno = 0;
+        len = read (s, buf + n, PREBUFFER - n);
+--- 209,215 ----
+      n = strip_shout_header (header, n);
+
+    /* This little prebuffer is a contribution from <kit@connectnet.com> */
+!   while (n < PREBUFFER)
+      {
+        errno = 0;
+        len = read (s, buf + n, PREBUFFER - n);
+***************
+*** 232,243 ****
+  #ifdef DEBUG
+        fprintf (stderr, "%d\n", n); /* Tells us how much each read() read */
+  #endif
+!       if ((n == -1) && (errno != EAGAIN))
+        {
+          fprintf (stderr, "Error in read, exiting\n");
+!         exit (3);
+        }
+-       write (1, buf, n);
+        errno = 0;
+      }
+    fprintf (stderr, "No more data, closing down socket\n");
+--- 236,249 ----
+  #ifdef DEBUG
+        fprintf (stderr, "%d\n", n); /* Tells us how much each read() read */
+  #endif
+!       if (n >= 0)
+!         write (1, buf, n);
+!       else
+!         if (errno != EAGAIN)
+          {
+            fprintf (stderr, "Error in read, exiting\n");
+!           exit(3);
+          }
+        errno = 0;
+      }
+    fprintf (stderr, "No more data, closing down socket\n");
+***************
+*** 297,303 ****
+        break;
+      }
+    head[i + 1] = '\0';
+!   fprintf (stderr, "Server said:%s\n", head);
+    memcpy (buf, head, n - (i + 1));
+    return n - (i + 1);
+  }
+--- 303,309 ----
+          break;
+      }
+    head[i + 1] = '\0';
+!   fprintf (stderr, "Server said: %s\n", head);
+    memcpy (buf, head, n - (i + 1));
+    return n - (i + 1);
+  }
+***************
+*** 312,318 ****
+        break;
+      }
+    head[i + 1] = '\0';
+!   fprintf (stderr, "Server said:%s\n", head);
+    memcpy (buf, head, n - (i + 1));
+    return n - (i + 1);
+  }
+--- 318,324 ----
+          break;
+      }
+    head[i + 1] = '\0';
+!   fprintf (stderr, "Server said: %s\n", head);
+    memcpy (buf, head, n - (i + 1));
+    return n - (i + 1);
+  }
+diff -bcr icecast-1.0.0/iceplay/mpeg.c icecast-1.0.0-OS2/iceplay/mpeg.c
+*** icecast-1.0.0/iceplay/mpeg.c        Tue Feb 16 22:11:28 1999
+--- icecast-1.0.0-OS2/iceplay/mpeg.c    Sun Feb 21 01:58:48 1999
+***************
+*** 71,77 ****
+
+    mp3_header_t mh;
+
+!   if ((file = fopen (filename, "r")) == NULL)
+      {
+        fprintf (stderr, "Could not access [%s]\n", filename);
+        perror ("fopen");
+--- 71,77 ----
+
+    mp3_header_t mh;
+
+!   if ((file = fopen (filename, "rb")) == NULL)
+      {
+        fprintf (stderr, "Could not access [%s]\n", filename);
+        perror ("fopen");
+diff -bcr icecast-1.0.0/iceplay/shout.c icecast-1.0.0-OS2/iceplay/shout.c
+*** icecast-1.0.0/iceplay/shout.c       Tue Feb 16 22:11:28 1999
+--- icecast-1.0.0-OS2/iceplay/shout.c   Sun Feb 21 03:13:58 1999
+***************
+*** 49,58 ****
+  #include <ctype.h>
+  #include <stdarg.h>
+  #include <errno.h>
+  #include "shout.h"
+
+- extern int errno;
+-
+  /* Main server socket */
+  int s;
+  /* Playlist indicator */
+--- 49,59 ----
+  #include <ctype.h>
+  #include <stdarg.h>
+  #include <errno.h>
++ #ifdef __EMX__
++ #include <compat.h>
++ #endif
+  #include "shout.h"
+
+  /* Main server socket */
+  int s;
+  /* Playlist indicator */
+***************
+*** 70,75 ****
+--- 71,78 ----
+    char buf[BUFSIZE];
+    struct hostent *hp;
+    struct sockaddr_in name;
++   int keep_alive;
++   int snd_buf;
+
+    umask (022);
+    current_song = 0;
+***************
+*** 103,109 ****
+    if ((s = socket (AF_INET, SOCK_STREAM, 6)) < 0)
+      {
+        scream (ERROR, "Could not create socket, exiting.\n");
+!       perror ("socket:");
+        px_shutdown (3);
+      }
+
+--- 106,112 ----
+    if ((s = socket (AF_INET, SOCK_STREAM, 6)) < 0)
+      {
+        scream (ERROR, "Could not create socket, exiting.\n");
+!       perror ("socket");
+        px_shutdown (3);
+      }
+
+***************
+*** 121,136 ****
+    if (connect (s, (struct sockaddr *) &name, len) < 0)
+      {
+        scream (ERROR, "Could not connect to %s.\n", set.servername);
+!       perror ("connect:");
+        px_shutdown (4);
+      }
+
+!   {
+!     int tmp = 1;
+!     setsockopt (s, SOL_SOCKET, SO_KEEPALIVE, &tmp, sizeof (tmp));
+!     tmp = 100000;
+!     setsockopt (s, SOL_SOCKET, SO_SNDBUF, &tmp, sizeof (tmp));
+!   }
+
+    /* Login on server, then play all arguments as files */
+    scream (VERBOSE, "Logging in...\n");
+--- 124,137 ----
+    if (connect (s, (struct sockaddr *) &name, len) < 0)
+      {
+        scream (ERROR, "Could not connect to %s.\n", set.servername);
+!       perror ("connect");
+        px_shutdown (4);
+      }
+
+!   keep_alive = 1;
+!   setsockopt (s, SOL_SOCKET, SO_KEEPALIVE, &keep_alive, sizeof(keep_alive));
+!   snd_buf = 100000;
+!   setsockopt (s, SOL_SOCKET, SO_SNDBUF, &snd_buf, sizeof(snd_buf));
+
+    /* Login on server, then play all arguments as files */
+    scream (VERBOSE, "Logging in...\n");
+***************
+*** 168,174 ****
+--- 169,177 ----
+    signal (SIGBUS, s1gnal);
+    signal (SIGUSR1, s1gnal);
+    signal (SIGUSR2, s1gnal);
++ #ifndef __EMX__
+    signal (SIGIO, s1gnal);
++ #endif
+
+    scream (VERBOSE, "Starting main source streaming loop..\n");
+    play_loop ();
+***************
+*** 312,318 ****
+      {
+        if (argv[i][0] == '-')
+        {
+!         if ((c = strchr ("pbeungCDP", argv[i][1])) != NULL)
+            {
+              if ((i == (argc - 1)) || (argv[i + 1][0] == '-'))
+                {
+--- 315,325 ----
+      {
+        if (argv[i][0] == '-')
+          {
+!           if (argv[i][1] == '\0') {
+!             add_file_to_playlist ("none");
+!             continue;
+!           }
+!           else if ((c = strchr ("pbeungCDP:", argv[i][1])) != NULL)
+              {
+                if ((i == (argc - 1)) || (argv[i + 1][0] == '-'))
+                  {
+***************
+*** 335,342 ****
+--- 342,355 ----
+                  i++;
+                  break;
+                case 'D': /* Implicitly -d */
++                 if (strcmp(argv[i + 1], "none") || strcmp(argv[i + 1], "-")) {
++                   strcpy (set.djfile, "");
++                   set.use_dj = 0;
++                 }
++                 else {
+                    strncpy (set.djfile, argv[i + 1], BUFSIZE);
+                    set.use_dj = 1;
++                 }
+                  i++;
+                  break;
+                case 'P':
+***************
+*** 417,429 ****
+                exit (0);
+            }
+        }
+!       else if (i != 1)
+!       {
+!         if (!set.setup_playlist)
+!           setup_playlist ();
+          add_file_to_playlist (argv[i]);
+        }
+-     }
+    return 1;
+  }
+
+--- 430,439 ----
+                  exit (0);
+              }
+          }
+!       else
+!         if (i != 1)
+            add_file_to_playlist (argv[i]);
+      }
+    return 1;
+  }
+
+***************
+*** 492,497 ****
+--- 502,510 ----
+    char filename[BUFSIZE], line[BUFSIZE];
+    int rate = 0;
+
++   if (!set.setup_playlist)
++     setup_playlist ();
++
+    if ((c = strchr (file, ':')) != NULL)
+      {
+        /* Bitrate specified in filename:bitrate */
+***************
+*** 645,650 ****
+--- 658,664 ----
+  void
+  s1gnal (const int sig)
+  {
++   struct timeval tv;
+  #ifdef __linux__
+    /* Unlike  on  BSD  systems, signals under Linux are reset to
+       their default  behavior  when  raised. */
+***************
+*** 673,685 ****
+        scream (ERROR, "Gee, what did we do there?\n");
+        px_shutdown (17);
+        break;
+        case SIGIO:
+        scream (ERROR, "Caught signal %d, what's the server up to?\n", sig);
+        px_shutdown (19);
+        break;
+        case SIGINT:
+-       {
+-         struct timeval tv;
+          gettimeofday (&tv, NULL);
+          if (((tv.tv_sec + tv.tv_usec / 1000000.0) - 0.4)
+              < (lastint.tv_sec + lastint.tv_usec / 1000000.0))
+--- 687,699 ----
+          scream (ERROR, "Gee, what did we do there?\n");
+          px_shutdown (17);
+          break;
++ #ifndef __EMX__
+        case SIGIO:
+          scream (ERROR, "Caught signal %d, what's the server up to?\n", sig);
+          px_shutdown (19);
+          break;
++ #endif
+        case SIGINT:
+          gettimeofday (&tv, NULL);
+          if (((tv.tv_sec + tv.tv_usec / 1000000.0) - 0.4)
+              < (lastint.tv_sec + lastint.tv_usec / 1000000.0))
+***************
+*** 689,695 ****
+          fflush (stdout);
+          printf ("\n");
+          fflush (stdout);
+-       }
+        break;
+      }
+  }
+--- 703,708 ----
+***************
+*** 743,755 ****
+      }
+    if (splitc (drate, line, ':') == NULL)
+      {
+!       scream (VERBOSE, "Command but no bitrate found, using autodetect\n");
+        play_song (crate, 0, line);
+        return which_line + 1;
+      }
+-   scream (VERBOSE, "Command and bitrate found, using that\n");
+    if (!drate[0] || (strlen (drate) < 2))
+      strcpy (drate, set.djfile);
+    play_song (crate, atoi (line), drate);
+    return which_line + 1;
+  }
+--- 756,771 ----
+      }
+    if (splitc (drate, line, ':') == NULL)
+      {
+!       scream (VERBOSE, "Command %d but no bitrate found, using autodetect\n", line);
+        play_song (crate, 0, line);
+        return which_line + 1;
+      }
+    if (!drate[0] || (strlen (drate) < 2))
+      strcpy (drate, set.djfile);
++   if (!drate || strlen(drate) == 0)
++     scream (VERBOSE, "Bitrate %d found, using that\n", atoi(line));
++   else
++     scream (VERBOSE, "Command %s and bitrate %d found, using that\n", drate, atoi(line));
+    play_song (crate, atoi (line), drate);
+    return which_line + 1;
+  }
+***************
+*** 812,824 ****
+    /*  static struct timeval latency_timer; */
+    char *buf;
+    struct stat st;
+
+    /* Clean the filename from \n */
+    if (ap[strlen (ap) - 1] == '\n')
+      ap[strlen (ap) - 1] = '\0';
+
+    /* Open our file */
+!   if ((fd = open (ap, O_RDONLY)) < 0)
+      {
+        scream (ERROR, "Could not access [%s]\n", ap);
+        perror ("open");
+--- 828,846 ----
+    /*  static struct timeval latency_timer; */
+    char *buf;
+    struct stat st;
++   int streaming = 0;
+
+    /* Clean the filename from \n */
+    if (ap[strlen (ap) - 1] == '\n')
+      ap[strlen (ap) - 1] = '\0';
+
+    /* Open our file */
+!   if (!strcmp(ap, "none")) {
+!     setmode(0, O_BINARY);
+!     fd = 0;
+!     streaming = 1;
+!   }
+!   else if ((fd = open (ap, O_RDONLY | O_BINARY)) < 0)
+      {
+        scream (ERROR, "Could not access [%s]\n", ap);
+        perror ("open");
+***************
+*** 836,849 ****
+        return;
+      }
+
+!   if (S_ISFIFO (st.st_mode))
+      {
+        set.graphics = 0;
+      }
+
+    if (rate == 0)
+      {
+!       if (set.autodetection)
+        {
+          scream (VERBOSE, "Checking mpeg headers...\n");
+          rate = 1000 * bitrate_of (ap);
+--- 858,871 ----
+        return;
+      }
+
+!   if (S_ISFIFO (st.st_mode) || streaming)
+      {
+        set.graphics = 0;
+      }
+
+    if (rate == 0)
+      {
+!       if (set.autodetection && !streaming)
+          {
+            scream (VERBOSE, "Checking mpeg headers...\n");
+            rate = 1000 * bitrate_of (ap);
+***************
+*** 852,859 ****
+        }
+      }
+
+!   if (rate <= 0) /* Either no autodetect, or autodetect failed */
+      rate = set.current_bitrate;
+
+    if (rate == 0)
+      {
+--- 874,883 ----
+          }
+      }
+
+!   if (rate <= 0) { /* Either no autodetect, or autodetect failed */
+      rate = set.current_bitrate;
++     scream (VERBOSE, "Using bitrate %d\n", rate);
++   }
+
+    if (rate == 0)
+      {
+***************
+*** 873,878 ****
+--- 897,903 ----
+      {
+        if (!command || !command[0] || strlen (command) < 2)
+          command = set.djfile;
++       if (command && strlen(command))
+          do_the_dj_thing (command);
+      }
+
+***************
+*** 889,894 ****
+--- 914,920 ----
+        scream (NORMAL,
+              "Playing %s\n[%d:%.2d] Size: %d Bitrate: %d (%d bytes/dot)\n",
+              ap, minutes, nseconds, (int)st.st_size, rate, slice);
++
+        /* The really fancy graphics */
+        printf ("[");
+        for (i = 0; i < 78; i++)
+***************
+*** 927,933 ****
+            }
+
+          /* The last 128 bytes _MIGHT_ be a id3 tag */
+!         if ((bytes + n) > (st.st_size - 128))
+            {
+              char *id3start;
+              while ((bytes + n) < st.st_size)
+--- 953,959 ----
+              }
+
+            /* The last 128 bytes _MIGHT_ be a id3 tag */
+!           if (!streaming && ((bytes + n) > (st.st_size - 128)))
+              {
+                char *id3start;
+                while ((bytes + n) < st.st_size)
+***************
+*** 938,944 ****
+                     fine too. */
+                  n += read (fd, buf + n, bytes_left);
+                }
+-
+              id3start = &buf[n - 128];
+              if (strncmp (id3start, "TAG", 3) == 0)
+                n -= 128;
+--- 964,969 ----
+***************
+*** 951,957 ****
+
+          if (n == 0) /* End of file */
+            {
+!             double time_sent, avg;
+              if (set.graphics)
+                {
+                  if (dots < 78)
+--- 976,982 ----
+
+            if (n == 0) /* End of file */
+              {
+!               int time_sent, avg;
+                if (set.graphics)
+                  {
+                    if (dots < 78)
+***************
+*** 959,983 ****
+                      printf ("."), dots++;
+                }
+              time_sent = (t.tv_sec + tv.tv_usec / 1000000.0) - (start.tv_sec + start.tv_usec / 1000000.0);
+!             scream (NORMAL, "\nDone with %s, sent %d bytes in %lf seconds\n",
+                      ap, bytes, time_sent);
+              if (t.tv_sec - start.tv_sec == 0)
+                scream (NORMAL, "Gee, that went fast! :)\n");
+              else
+                {
+!                 avg = (double)(8.0 * (bytes / time_sent));
+!                 scream (NORMAL, "Transfer rate average %lfbps\n", avg);
+                  if (set.autocorrection)
+                    {
+                      if (((double)(rate - avg) / (double)rate) > 0.2)
+                        scream (NORMAL, "Wicked transfer rate, ignoring\n");
+                      else
+                        {
+!                         /* 0.5 is the aggresiveness of value */
+                          set.overhead = 0.5 * (((double)(rate - avg)) /
+                                                (double)rate);
+!                         scream (NORMAL,
+!                                 "Now using an overhead factor of %f\n",
+                                  set.overhead);
+                        }
+                    }
+--- 984,1007 ----
+                        printf ("."), dots++;
+                  }
+                time_sent = (t.tv_sec + tv.tv_usec / 1000000.0) - (start.tv_sec + start.tv_usec / 1000000.0);
+!               scream (NORMAL, "\nDone with %s, sent %d bytes in %d seconds\n",
+                        ap, bytes, time_sent);
+                if (t.tv_sec - start.tv_sec == 0)
+                  scream (NORMAL, "Gee, that went fast! :)\n");
+                else
+                  {
+!                   avg = (8.0 * ((double) bytes / time_sent));
+!                   scream (NORMAL, "Transfer rate average %dbps\n", avg);
+                    if (set.autocorrection)
+                      {
+                        if (((double)(rate - avg) / (double)rate) > 0.2)
+                          scream (NORMAL, "Wicked transfer rate, ignoring\n");
+                        else
+                          {
+!                           /* 0.5 is the aggresiveness */
+                            set.overhead = 0.5 * (((double)(rate - avg)) /
+                                              (double)rate);
+!                           scream (NORMAL, "Now using an overhead factor of %f\n",
+                                set.overhead);
+                          }
+                      }
+***************
+*** 992,998 ****
+              if (i < 0)
+                {
+                  scream (VERBOSE, "Server kicked us out, damn.\n");
+!                 px_shutdown (77);
+                }
+              scream (VERBOSE, "Sent only %d bytes, instead of %d\n", i, n);
+              px_shutdown (78);
+--- 1016,1022 ----
+                if (i < 0)
+                  {
+                    scream (VERBOSE, "Server kicked us out, damn.\n");
+!                   px_shutdown(77);
+                  }
+                scream (VERBOSE, "Sent only %d bytes, instead of %d\n", i, n);
+                px_shutdown (78);
+***************
+*** 1004,1009 ****
+--- 1028,1034 ----
+              bytes_left = bufsize - bytes_read;
+          } while (bytes_read < bufsize);
+
++       bytes += n;
+        if (set.graphics && (bytes > (slice * (dots + 1))))
+          {
+            if (set.use_cue_file && set.update_cue_file)
+diff -bcr icecast-1.0.0/main.c icecast-1.0.0-OS2/main.c
+*** icecast-1.0.0/main.c        Tue Feb 16 22:11:04 1999
+--- icecast-1.0.0-OS2/main.c    Sat Feb 20 21:58:06 1999
+***************
+*** 27,36 ****
+  #include <stdarg.h>
+  #include <string.h>
+  #include <unistd.h>
+  #include <fcntl.h>
+  #include <signal.h>
+- #include <sys/types.h>
+  #include <sys/wait.h>
+  #include "sock.h"
+  #include "icecast.h"
+  #include "types.h"
+--- 27,37 ----
+  #include <stdarg.h>
+  #include <string.h>
+  #include <unistd.h>
++ #include <sys/types.h>
+  #include <fcntl.h>
+  #include <signal.h>
+  #include <sys/wait.h>
++ #include <errno.h>
+  #include "sock.h"
+  #include "icecast.h"
+  #include "types.h"
+***************
+*** 38,43 ****
+--- 39,47 ----
+  #include "directory.h"
+  #include "log.h"
+  #include "logtime.h"
++ #ifdef __EMX__
++ #include <compat.h>
++ #endif
+
+  void sig_child(int signo)
+  {
+***************
+*** 102,108 ****
+        char *s, *temp;
+
+        do {
+!               sock_read(info->encoder_sock, &s);
+
+                temp = strstr(s, "icy-name:");
+                if (temp != NULL) info->name = (char *)(temp + 9);
+--- 106,115 ----
+          char *s, *temp;
+
+          do {
+!                 if (sock_read(info->encoder_sock, &s) < 0) {
+!                   write_log(info, "Failed to read header");
+!                   break;
+!                 }
+
+                  temp = strstr(s, "icy-name:");
+                  if (temp != NULL) info->name = (char *)(temp + 9);
+***************
+*** 121,127 ****
+  {
+        char *test;
+
+!       sock_read(sockfd, &test);
+
+        /* printf("Encoder said: my password is %s\n", test); */
+        if (strcmp(pass, test) == 0) {
+--- 128,135 ----
+  {
+          char *test;
+
+!         if (sock_read(sockfd, &test) < 0)
+!           return 0;
+
+          /* printf("Encoder said: my password is %s\n", test); */
+          if (strcmp(pass, test) == 0) {
+***************
+*** 142,148 ****
+
+        sock_write(info->remote_admin_sock, "Welcome to icecast remote admin socket\nType help for a listing of commands\n-> ");
+
+!       while(sock_read(info->remote_admin_sock, &command) != 0) {
+                write_log(info, "Remote admin said %s", command);
+                if (strcasecmp(command, "listeners") == 0) {
+                        sock_write(info->remote_admin_sock, "Listing Listeners (%d):\n", info->num_clients);
+--- 150,156 ----
+
+          sock_write(info->remote_admin_sock, "Welcome to icecast remote admin socket\nType help for a listing of commands\n-> ");
+
+!         while(sock_read(info->remote_admin_sock, &command) >= 0) {
+                  write_log(info, "Remote admin said %s", command);
+                  if (strcasecmp(command, "listeners") == 0) {
+                          sock_write(info->remote_admin_sock, "Listing Listeners (%d):\n", info->num_clients);
+***************
+*** 176,182 ****
+                }
+                else if (strcasecmp(command, "shutdown") == 0) {
+                        sock_write(info->remote_admin_sock, "Are you sure you want to shut down this Icecast server? [Y/N]: ");
+!                       if (sock_read(info->remote_admin_sock, &command) != 0) {
+                                if (strncasecmp(command, "y", 1) == 0) {
+                                        sock_write(info->remote_admin_sock, "Shutting down server...\n");
+                                        close(info->remote_admin_sock);
+--- 184,190 ----
+                  }
+                  else if (strcasecmp(command, "shutdown") == 0) {
+                          sock_write(info->remote_admin_sock, "Are you sure you want to shut down this Icecast server? [Y/N]: ");
+!                         if (sock_read(info->remote_admin_sock, &command) >= 0) {
+                                  if (strncasecmp(command, "y", 1) == 0) {
+                                          sock_write(info->remote_admin_sock, "Shutting down server...\n");
+                                          close(info->remote_admin_sock);
+***************
+*** 196,202 ****
+                }
+                else
+                        sock_write(info->remote_admin_sock, "Commands available are:\nhelp\nlisteners\nsources\nuptime\nlog\nshutdown\nquit\n-> ");
+!               sleep(.5);
+                }
+        return 0;
+  }
+--- 204,210 ----
+                  }
+                  else
+                          sock_write(info->remote_admin_sock, "Commands available are:\nhelp\nlisteners\nsources\nuptime\nlog\nshutdown\nquit\n-> ");
+!                 usleep(500000);
+                  }
+          return 0;
+  }
+***************
+*** 243,260 ****
+        write_log(info, "listening for remote admin on port %i...", info->remote_admin_port);
+
+        while (running) {
+                /* Get data from the encoder or get an encoder */
+                if (encoder_connected) {
+                        memset(buffer, 0, CLIENT_BUFFSIZE);
+!                       read_bytes = read(info->encoder_sock, buffer, CLIENT_BUFFSIZE);
+                        if (read_bytes <= 0) {
+                                encoder_connected = 0;
+                                close(info->encoder_sock);
+                        }
+                } else {
+                        write_log(info, "waiting for encoder or redirection...");
+                        while (!encoder_connected) {
+!                               usleep(25);
+                                if (!running)
+                                        clean_shutdown(info);
+                                if (info->redirection == 1) {
+--- 251,271 ----
+          write_log(info, "listening for remote admin on port %i...", info->remote_admin_port);
+
+          while (running) {
++                 usleep(50000);
+                  /* Get data from the encoder or get an encoder */
+                  if (encoder_connected) {
+                          memset(buffer, 0, CLIENT_BUFFSIZE);
+!                         read_bytes = recv(info->encoder_sock, buffer, CLIENT_BUFFSIZE, 0);
+                          if (read_bytes <= 0) {
++                           if (read_bytes == 0 || (errno != EWOULDBLOCK && errno != EINTR)) {
+                                  encoder_connected = 0;
+                                  close(info->encoder_sock);
+                            }
++                         }
+                  } else {
+                          write_log(info, "waiting for encoder or redirection...");
+                          while (!encoder_connected) {
+!                                 usleep(250000);
+                                  if (!running)
+                                          clean_shutdown(info);
+                                  if (info->redirection == 1) {
+***************
+*** 298,310 ****
+                }
+
+                /* get remote admin */
+!               if ((info->remote_admin_sock = get_client(info->remote_admin_lsock)) > 0) {
+                        memset (&name, 0, sizeof (struct sockaddr_in));
+!                       if (getpeername (info->remote_admin_sock, (struct sockaddr *)&name, &namelen) == -1)
+                          write_log(info, "remote admin connecting...");
+                        else
+                          write_log(info, "remote admin [%s:%d] connecting...", makeasciihost ((char *)&name.sin_addr), name.sin_port);
+!                       if (fork() == 0) {
+                          if ((check_pass(info->remote_admin_sock, info->remote_admin_pass)) > 0) {
+                                  write_log(info, "password accepted from remote admin...");
+                                  remote_admin_console(info);
+--- 309,322 ----
+                  }
+
+                  /* get remote admin */
+!                 if ((info->remote_admin_sock = get_client(info->remote_admin_lsock)) >= 0) {
+!                         int pid;
+                          memset (&name, 0, sizeof (struct sockaddr_in));
+!                         if (getpeername (info->remote_admin_sock, (struct sockaddr *)&name, &namelen) < 0)
+                            write_log(info, "remote admin connecting...");
+                          else
+                            write_log(info, "remote admin [%s:%d] connecting...", makeasciihost ((char *)&name.sin_addr), name.sin_port);
+!                         if ((pid = fork()) == 0) {
+                            if ((check_pass(info->remote_admin_sock, info->remote_admin_pass)) > 0) {
+                                    write_log(info, "password accepted from remote admin...");
+                                    remote_admin_console(info);
+***************
+*** 317,329 ****
+                            exit(0);
+                          }
+                        }
+                        else
+                                close(info->remote_admin_sock);
+                }
+
+                /* get new clients */
+                client = get_client(info->client_lsock);
+!               if (client != -1) {
+                        memset (&name, 0, sizeof (struct sockaddr_in));
+                        if (getpeername (client, (struct sockaddr *)&name, &namelen) == -1)
+                          write_log(info, "client connecting...");
+--- 329,345 ----
+                              exit(0);
+                            }
+                          }
++                         else if (pid < 0) {
++                           write_log(info, "fork for admin console failed");
++                           exit(0);
++                         }
+                          else
+                            close(info->remote_admin_sock);
+                  }
+
+                  /* get new clients */
+                  client = get_client(info->client_lsock);
+!                 if (client >= 0) {
+                          memset (&name, 0, sizeof (struct sockaddr_in));
+                          if (getpeername (client, (struct sockaddr *)&name, &namelen) == -1)
+                            write_log(info, "client connecting...");
+***************
+*** 350,356 ****
+                if (encoder_connected) {
+                        for (i = 0; i < info->max_clients; i++)
+                                if (info->clients[i] > 0) {
+!                                       write_bytes = write(info->clients[i], buffer, read_bytes);
+                                        if (write_bytes < 0) {
+                                          close(info->clients[i]);
+                                          info->clients[i] = 0;
+--- 366,372 ----
+                  if (encoder_connected) {
+                          for (i = 0; i < info->max_clients; i++)
+                                  if (info->clients[i] > 0) {
+!                                         write_bytes = send(info->clients[i], buffer, read_bytes, 0);
+                                          if (write_bytes < 0) {
+                                            close(info->clients[i]);
+                                            info->clients[i] = 0;
+***************
+*** 373,382 ****
+--- 389,402 ----
+                          time = get_time();
+                          if ((time - lasttime) >= info->touch_freq * 60) {
+                                  lasttime = time;
++ #ifdef __EMX__
++                                         directory_touch(info);
++ #else
+                                  if (fork() == 0) {
+                                          directory_touch(info);
+                                          exit(0);
+                                  }
++ #endif
+                          }
+                  }
+          }
+***************
+*** 389,404 ****
+        printf("i c e c a s t - Version %s\n", VERSION);
+        printf(" ` ` ` ` ` `\n");
+        printf("Usage:\n");
+!       printf("icecast [-P <port>] [-E <port>] [-d <hostname>] [-m <users>] [-A <port>]\n");
+!       printf("        [-p <password>] [-l <file>] [-r] [-H <hostname>] [-R <port>]\n");
+        printf("\n");
+        printf("\tOptions explained (default in parenthesis):\n");
+        printf("\t-P: port on which the server will listen for client connections (%d)\n", DEFAULT_PORT);
+        printf("\t-E: port on which the server will listen for encoder connections (%d)\n", DEFAULT_ENCODER_PORT);
+        printf("\t-A: port on which the server will listen for a remote admin (%d)\n", DEFAULT_REMOTE_ADMIN_PORT);
+!       printf("\t-d: hostname of the directory server to use (%s)\n", DEFAULT_DIRECTORY_SERVER);
+        printf("\t-m: maximum number of clients to accept (%d)\n", DEFAULT_MAX_CLIENTS);
+        printf("\t-p: password to validate encoders (%s)\n", DEFAULT_ENCODER_PASSWORD);
+        printf("\t-l: file for logging (%s)\n", DEFAULT_LOGFILE);
+        printf("\t-r: enable redirection\n");
+        printf("\t-H: redirection: server hostname or ip\n");
+--- 409,426 ----
+          printf("i c e c a s t - Version %s\n", VERSION);
+          printf(" ` ` ` ` ` `\n");
+          printf("Usage:\n");
+!         printf("icecast [-P <port>] [-E <port>] [-d <hostname> | 'none'] [-m <users>]\n");
+!         printf("        [-A <port>] [-p <password>] [-q <password>] [-l <file>] [-r]\n");
+!         printf("        [-H <hostname>] [-R <port>]\n");
+          printf("\n");
+          printf("\tOptions explained (default in parenthesis):\n");
+          printf("\t-P: port on which the server will listen for client connections (%d)\n", DEFAULT_PORT);
+          printf("\t-E: port on which the server will listen for encoder connections (%d)\n", DEFAULT_ENCODER_PORT);
+          printf("\t-A: port on which the server will listen for a remote admin (%d)\n", DEFAULT_REMOTE_ADMIN_PORT);
+!         printf("\t-d: hostname of the directory server to use (%s),\n\t    'none' to disable\n", DEFAULT_DIRECTORY_SERVER);
+          printf("\t-m: maximum number of clients to accept (%d)\n", DEFAULT_MAX_CLIENTS);
+          printf("\t-p: password to validate encoders (%s)\n", DEFAULT_ENCODER_PASSWORD);
++         printf("\t-q: password to validate remote admin (%s)\n", DEFAULT_REMOTE_ADMIN_PASSWORD);
+          printf("\t-l: file for logging (%s)\n", DEFAULT_LOGFILE);
+          printf("\t-r: enable redirection\n");
+          printf("\t-H: redirection: server hostname or ip\n");
+***************
+*** 438,443 ****
+--- 460,469 ----
+                                  arg++;
+                                  info->encoder_pass = argv[arg];
+                                  break;
++                         case 'q':
++                                 arg++;
++                                 info->remote_admin_pass = argv[arg];
++                                 break;
+                          case 'l':
+                                  arg++;
+                                  info->logfilename = argv[arg];
+diff -bcr icecast-1.0.0/sock.c icecast-1.0.0-OS2/sock.c
+*** icecast-1.0.0/sock.c        Tue Feb 16 22:11:04 1999
+--- icecast-1.0.0-OS2/sock.c    Sun Feb 21 02:33:18 1999
+***************
+*** 19,24 ****
+--- 19,26 ----
+   *
+   */
+
++ #include <errno.h>
++
+  #ifdef HAVE_CONFIG_H
+  #include <config.h>
+  #endif
+***************
+*** 38,44 ****
+        vsprintf (buff, fmt, ap);
+  #endif
+
+!       write_bytes = write(sockfd, buff, strlen(buff));
+
+        return (write_bytes == strlen(buff) ? 1 : 0);
+  }
+--- 40,46 ----
+          vsprintf (buff, fmt, ap);
+  #endif
+
+!         write_bytes = send(sockfd, buff, strlen(buff), 0);
+
+          return (write_bytes == strlen(buff) ? 1 : 0);
+  }
+***************
+*** 47,67 ****
+  {
+        char c, buff[1024];
+        int read_bytes, pos;
+
+        memset(buff, 0, 1024);
+        pos = 0;
+
+!       read_bytes = read(sockfd, &c, 1);
+!       while (c != '\n' && pos < 1024 && read_bytes == 1) {
+!               if (c != '\r')
+!                       buff[pos++] = c;
+!               read_bytes = read(sockfd, &c, 1);
+        }
+
+!       *string = (char *)malloc(strlen(buff)+1);
+        strcpy(*string, buff);
+
+!       return (read_bytes == 1 ? 1 : 0);
+  }
+
+  int get_server_socket(int port)
+--- 49,79 ----
+  {
+          char c, buff[1024];
+          int read_bytes, pos;
++         int len;
+
+          memset(buff, 0, 1024);
+          pos = 0;
+
+!         while (pos < 1024) {
+!           read_bytes = recv(sockfd, &c, 1, 0);
+!           if (read_bytes <= 0) {
+!             if (read_bytes == 0 || (errno != EWOULDBLOCK && errno != EINTR)) {
+!               return -1;
+!             }
+!             else {
+!               usleep(5000);
+!               continue;
+!             }
+!           }
+!           if (c == '\n') break;
+!           if (c != '\r') buff[pos++] = c;
+          }
+
+!         len = strlen(buff);
+!         *string = (char *)malloc(len+1);
+          strcpy(*string, buff);
+
+!         return len;
+  }
+
+  int get_server_socket(int port)
+***************
+*** 70,80 ****
+--- 82,96 ----
+          int sin_len;
+          int sockfd;
+          int error;
++         int reuse_addr;
+
+          /* get socket descriptor */
+          sockfd = socket(AF_INET, SOCK_STREAM, 0);
+          if (sockfd < 0) return sockfd;
+
++         reuse_addr = 1;
++         if ((error = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr))) < 0)
++           return error;
++
+          /* setup sockaddr structure */
+          sin_len = sizeof(sin);
+          memset(&sin, 0, sin_len);

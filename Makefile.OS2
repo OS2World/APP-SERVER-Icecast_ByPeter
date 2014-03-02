@@ -1,0 +1,53 @@
+# Generated automatically from Makefile.in by configure.
+CC = gcc
+CFLAGS = -g -O2
+LDFLAGS =  -Zcrtdll -Zbsd-signals -lsocket -lcompat
+SHELL=/bin/sh
+
+srcdir = .
+
+DEFS = -I. -DHAVE_CONFIG_H
+
+COMPILE_CFLAGS=$(CFLAGS) $(DEFS)
+
+OBJS=	main.o		\
+	log.o		\
+	directory.o	\
+	sock.o		\
+	logtime.o
+
+MAKE = make -f Makefile.OS2
+
+all: icecast.exe shout.exe listen.exe config.h
+
+config.h: config.h.OS2
+	cp -p config.h.OS2 config.h
+
+main.o: icecast.h sock.h types.h globals.h directory.h log.h main.c
+	$(CC) $(COMPILE_CFLAGS) -c -o main.o main.c
+log.o: types.h log.h log.c
+	$(CC) $(COMPILE_CFLAGS) -c -o log.o log.c
+directory.o: sock.h types.h directory.h directory.c
+	$(CC) $(COMPILE_CFLAGS) -c -o directory.o directory.c
+sock.o: sock.h sock.c
+	$(CC) $(COMPILE_CFLAGS) -c -o sock.o sock.c
+logtime.o: logtime.h logtime.c
+	$(CC) $(COMPILE_CFLAGS) -c -o logtime.o logtime.c
+
+icecast.exe: $(OBJS)
+	$(CC) $(COMPILE_CFLAGS) -o icecast.exe $(OBJS) $(LDFLAGS)
+
+shout.exe:
+	@cd iceplay; $(MAKE) shout.exe
+
+listen.exe:
+	@cd iceplay; $(MAKE) listen.exe
+
+
+.PHONY: clean 
+
+clean:
+	rm -f *.o icecast.exe
+	@cd iceplay; $(MAKE) clean
+
+

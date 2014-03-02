@@ -1,0 +1,56 @@
+i c e p l a y
+ ` ` ` ` ` `
+
+Introduction
+~~~~~~~~~~~~
+NOTE: This is now for reference only.  Shout is the preferred streamer.
+
+iceplay streams a playlist of Mpeg Layer III files to an icecast server.
+These files will all be streamed at a bitrate that is specified on
+startup (default is 128kbps).  If the files are not all encoded at the
+specified bitrates, weird things will happen on playback (pauses, 
+speedups).  An easy way to make a playlist is:
+
+find /home/mp3 -name *.mp3 > playlist
+
+This will grab every Mpeg file under /home/mp3 and throw it into
+the file "playlist".  iceplay randomly selects a song from
+this list, and starts streaming it to the server.  After it
+finishes the current song, it randomly selects another.
+
+It can also print out song information to a user specified file (default
+is "webfile") so that you can include this from web pages.  It grabs the
+information with a Regular Expression from the filename, so name your
+files well, and modify the expression to reflect this.  Right now,
+iceplay grabs Artist and Song info in this format:
+
+/home/mp3/Arist - Song.mp3
+
+This information will be put in webfile and will look like:
+
+Song by Artist
+
+We think that this is a pretty nifty feature, and we will probably
+expand upon this in the near future (jukeboxes, favorite songs, etc).
+
+Since iceplay is a Perl script, it can be easily modified to
+suit your needs.
+
+Requirements
+~~~~~~~~~~~~
+Requires Perl 5 and the Time::HiRes package from CPAN.
+
+Known Issues
+~~~~~~~~~~~~
+During our tests at 128kbps, we noticed that every once in a while
+(althought often enough to be annoying) there is a chirping noise.
+This is probably because some data is being skipped somewhere...
+
+We think that this is a problem with Perl, in that it is not fast 
+enough to keep up with a 128kbps stream.
+
+contacts and webpage
+~~~~~~~~~~~~~~~~~~~~
+The main webpage for icecast is http://icecast.linuxpower.org
+Please send any suggestions, bugfixes, or anything else to
+icecast@linuxpower.org

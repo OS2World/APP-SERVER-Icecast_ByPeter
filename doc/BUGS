@@ -1,0 +1,9 @@
+Bugs listing for icecast 1.0.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Although not a bug, it is often mistaken for a bug: when using the
+remote admin console, the data that you can see (not including the log) is
+frozen as it was when you connected to the remote admin port.  This means
+that if there were 3 listeners when you connected as a remote admin, no
+matter what happens during that remote admin session, you'll still see 3
+listeners.  The log command will work however.

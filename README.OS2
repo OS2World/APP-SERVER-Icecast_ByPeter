@@ -1,0 +1,68 @@
+icecast 1.0.0 ported to OS/2
+
+icecast is a MPEG audio broadcasting system; a server process ('icecast')
+gets a compressed MPEG stream fed by 'shout', clients can request the audio
+stream using HTTP
+
+ * simple telnet administration console provided
+ * no multicast support, only TCP uni-casting
+ * works with amp, mp123, mpg123 and PM123
+
+requirements:
+
+EMX 0.9d
+HPFS
+TCP/IP
+directory /tmp must exist
+
+how to use it:
+
+  * start an icecast server
+
+      start /n icecast -p pwd1 -q pwd2 -d -
+
+    you specify the encoder password with -p and the admin password
+    with -q, -d none or -d - disables the directory server
+
+  * start the encoder/feeder process
+
+      start /n shout host -P pwd1 test.mp3 or
+      start /n cat test.mp3 | shout host -P pwd1 none:96000
+
+  * start clients
+
+      mp123 http://host:8000 or
+      listen host 8000 | amp -
+
+not tested:
+
+  * directory server
+  * redirection
+  * all that icedir stuff
+
+changes from icecast 1.0.0 (OS/2 specific):
+
+  * enhanced icecast -d option (disable directory server
+    with '-d -' or '-d none')
+  * added -q option to icecast (set remote admin password)
+  * opening server port with socket option SO_REUSEADDR
+  * filenames '-' and 'none' makes shout read from stdin, don't forget to set
+    the bitrate with -b
+  * shout's -D parameter to set a DJ script now also accepts 'none'
+    which disables that feature
+
+changes from icecast 0.9.0 OS/2:
+
+  * updated to icecast 1.0.0
+  * included description of new parameters
+  * more testing
+
+known bugs:
+
+  * does not support drive letters since ':' is used as seperator
+
+contact:
+
+Peter Meerwald
+pmeerw@bgnet.bgsu.edu
+seawood@very.priv.at

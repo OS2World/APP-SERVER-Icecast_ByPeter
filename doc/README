@@ -1,0 +1,111 @@
+i c e c a s t
+ ` ` ` ` ` `
+
+Introduction
+~~~~~~~~~~~~
+Icecast is an Internet based broadcasting system based on the Mpeg Layer III
+streaming technology.  It was originally inspired by Nullsoft's Shoutcast 
+and also mp3serv by Scott Manley.  The icecast project was started for several
+reasons: a) all broadcasting systems were pretty much closed source,
+non-free software implementations, b) Shoutcast doesn't allow you to run your
+own directory servers, or support them, and c) we thought it would be a
+lot of fun.
+
+Icecast is almost completely Shoutcast compatible as far as we've been 
+able to determine.  WinAmp can both send encoded streams as well as stream
+music from icecast.  Icecast can also use the yp.shoutcast.com directory
+services and adds the ability to use other directory services.
+
+Packaged with the icecast server are other components: shout, iceplay, and
+icedir.
+
+Shout is a C program to provide streaming of mp3 files to icecast.  It has
+many command line options - read about them in README.shout.  This is the
+recommended streamer for icecast.
+
+Iceplay is a simple perl script that will stream a playlist of MP3 files to
+an icecast server (it will also work with a Shoutcast server).  This is the
+first Linux based "encoder" that we know of.  This is no longer in
+progress, but provided for reference.  We suggest you use shout for
+streaming.
+
+The directory services component (icedir) can be used with any web server
+setup with PHP and Mysql.  We have also provided the interface specification
+so that anyone who wishes to write directory server software has all the
+information that they need.  If you were able to point a Shoutcast server to
+a icedir directory service, we are fairly sure it would work exactly the
+same.
+
+License
+~~~~~~~
+Icecast, a streaming audio server
+Copyright (C) 1999 Jack Moffitt and Barath Raghavan
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+
+icecast
+~~~~~~~
+Icecast provides nearly all the functionality of the Shoutcast Linux
+server.  It will accept encoding streams from either iceplay or WinAmp.
+It can also add itself to a directory server such as our own
+icecast.linuxpower.org or Nullsoft's yp.shoutcast.com.  It does not yet 
+support redirection of streams from other icecast servers, but soon will.
+Command-line options are as follows (these can be obtained by running 
+'icecast -h' as well):
+
+icecast [-P <port>] [-E <port>] [-d <hostname>] [-m <users>] [-A <port>]
+	[-p <password>] [-l <file>] [-r] [-H <hostname>] [-R <port>]
+
+Options explained (default in parenthesis):
+-P: port on which the server will listen for client connections (8000)
+-E: port on which the server will listen for encoder connections (8001)
+-A: port on which the server will listen for a remote admin (8002)
+-d: hostname of the directory server to use (icecast.linuxpower.org)
+-m: maximum number of clients to accept (25)
+-p: password to validate encoders (letmein)
+-l: file for logging (icecast.log)
+-r: enable redirection
+-H: redirection: server hostname or ip
+-R: redirection: server port
+
+shout
+~~~~~
+Shout is now the primary streamer recommended for icecast.  Read the file
+README.shout for more information.
+
+iceplay
+~~~~~~~
+Iceplay will stream mp3 files at a specified bitrate given a playlist of
+files.  It will use the password protection and extra header information
+as needed.  It also writes out the current file being played to a
+textfile, so if the directory is organized correctly this can give
+listeners useful information about what is being played.  We recommend the
+use of shout instead of iceplay.
+
+icedir
+~~~~~~
+The directory services are functionally (and it seems technically
+equivalent) to the service yp.shoutcast.com provides.  They are written in
+php and interface with a mysql database.  They allow for adding, touching,
+and removal of servers from the database through the standard icecast
+method.  It is likely shoutcast compliant as well, but since shoutcast
+always uses yp.shoutcast.com as a directory server, this has not been
+tested.
+
+contacts and webpage
+~~~~~~~~~~~~~~~~~~~~
+The main webpage for icecast is http://icecast.linuxpower.org
+Please send any suggestions, bugfixes, or anything else to
+icecast@linuxpower.org

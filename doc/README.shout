@@ -1,0 +1,205 @@
+s h o u t
+ ` ` ` `
+
+Introduction
+~~~~~~~~~~~~
+This readme is the official documentation for shout and listen.  If you
+have any questions that don't get answered by reading this document, then
+don't hesitate to email me. You might also want to check out these
+webpages:
+
+Icecast system: http://icecast.linuxpower.org
+Shoutcast system: http://www.shoutcast.com
+Mpg123: http://mpg.123.org
+
+
+About Shout
+~~~~~~~~~~~
+This package includes two programs - shout and listen - and both are
+designed to be used with icecast or shoutcast.. The shoutcast system is a
+more or less commercial system, developed by Nullsoft.  You can find
+information on their system at http://www.shoutcast.com. The icecast
+system is GPL, developed by a bunch of of folks over at
+http://icecast.linuxpower.org - Me, among others :)
+
+The systems are more or less compatible. 
+
+The two programs in this package (shout & listen), are unix clients for
+these systems. Shout is responsible for feeding a mp3 stream to the
+server.  Listen will receive a stream from a icecast or shoutcast server
+and play it back using mpg123.
+
+Listen
+~~~~~~
+Later versions of mpg123 (0.59pre-p), seem to handle the streaming quite
+nicely, so you might want to skip listen altogether. Try, and see what
+works best.
+Either do:
+listen <host> <port> | mpg123 -
+or:
+mpg123 http://host:port
+
+Shout
+~~~~~
+
+Shout now has three configuration systems:
+	* Hardcoded defaults in shout.h.
+	* Command line parameters
+	* Configuration file(s).
+
+* To change the hardcoded defaults, just edit shout.h and recompile.
+
+* Command line arguments:
+
+-B	<directory> Use directory for shout's internal playlist, the cue
+	file, the pid file, and the log file.
+	Logfile:
+	This file contains all output that shout prints on the standard 
+	output, will also end up in this file. 
+	Furthermore, all output that would only be printed when in verbose 
+	mode, ends up in this file, even though verbose mode is not set.
+	Cuefile:
+	In this file, shout will put information about the file it's
+	currently streaming.
+	
+-C	<file>	Use file as a configuration file. Options prior to this on
+the command line are overridden.  Options after this override whatever
+this configfile specifies.  If the file doesn't exist, shout exits.
+
+-D	<file>	If not overridden, shout will run file with a system()
+call before every song. This option implies the -d option.
+
+-P	<password> Use password when connecting to server.
+
+-S	Display all compile time settings, default settings, and current
+setting, and exit.
+
+-V	Turn verbose mode on.
+
+-a	Turn on the automatic transfer bitrate autocorrection. For every 
+song that gets sent, shout keeps track of the transfer rate, and if it
+notices that it sent the song too fast or too slow, it will
+increase/decrease bytes/s value somewhat.
+
+-b 	<bitrate> This is hardly used any more. But if autodetection of
+bitrate is off, then this value gets used as the transfer bitrate.
+
+-d 	Activate the dj. This turns the use of the dj program on.
+
+-e      <port> Connect to port on the server.
+
+-f	Force. Skip all the files that have a bitrate other than
+	the specified default. (Changing bitrate will make the player
+	puke).
+
+-g 	<genre>	Send this as the icy-genre to the server.
+
+-h	Show usage and options, and exit.
+
+-k	Don't truncate the internal playlist when starting the program. 
+(Pick up where we left off)
+
+-l	Loop forever. When we get to the end of the playlist, shuffle it
+(if shuffle is on), and start over from the top.
+
+-n 	<name> Use name as icy-name when connecting to the server.
+
+-o	Turn off the bitrate autodetection.
+
+-p	<file> Append file to the internal playlist. This option can be 
+repeated many times. See note about playlists below.
+
+-r	Shuffle playlist (at first, and every time we loop).
+
+-s	Set the icy-public flag to 0. (Don't send metadata to the 
+directory server).
+
+-u	<url> Use url as icy-url when connecting to the server.
+
+-v	Show version and exit.
+
+-x	Don't update the cuefile when streaming.
+
+* Configuration File:
+
+Shout always looks for the configuration file specified as the default in
+shout.h.  Shout will parse the config file if it finds one. If you specify
+another config file with the -C <file> option, it parses that too. Lines
+that start with # are treated as comments. Please be gentle with the
+parser, I just wrote it and it's not very smart :)
+
+All lines in the file either looks like:
+<option>
+or
+<option> <bool> (yes/no, on/off or 1/0)
+or
+<option> <value>
+
+The options are: (See above in the command line options to figure out what
+the options mean)
+
+autodetect <bool> 
+autocorrect <bool>
+base_dir <directory>
+djprogram <file>
+genre <genre>
+loop <bool>
+name <name>
+password <password>
+public <bool>
+playlist <file>
+port <integer>
+shuffle <bool>
+truncate <bool>
+update <bool>
+url <bool>
+usedj <bool>
+usecuefile <bool>
+verbose <bool>
+force <bool>
+
+Cue file
+~~~~~~~~
+The cue file holds information on the file that shout is currently feeding
+to the server. This is neat for you people out there who like running scripts.
+I myself, use the cue file in a tcl script, running from a eggdrop bot, on irc.
+That way I can ask the bot what song is currently playing, how long it is, how
+much of it has been played, and get information about the next songs on the
+playlist.
+The file currently has the following lines, (in this order).
+filename
+size (in bytes)
+bitrate (in bits/s)
+minutes:seconds (total song length)
+percent played (i.e 25, no %-sign)
+playlist line index (i.e 3, if we're playing the 4:th line in the internal 
+playlist. Logical, huh? ) Also, for you scripting people, when shout
+starts, it writes its process id to the file shout.pid. 
+
+Playlists
+~~~~~~~~~
+First, note that the term "internal" playlist, refers to the file created
+by shout when started. Other playlists are the files including all the
+files you like shout to stream. All playlists, and all files specified
+directly on the command line, get appended to this internal playlist.
+Then, if specified, shout shuffles this list, and starts playing the
+first file. When done, it plays the second line, and so on.
+The syntax of this file, _and_ the files you specify as playlists, is
+very simple.
+One file per line.
+<file>
+Or, if you want to specify a command to be run just before this song, 
+<file>:command
+Or, if you want to specify a bitrate (shout won't try to autodetect it),
+<file>:command:bitrate (or just <file>::bitrate).
+
+Signals
+~~~~~~~
+SIGINT makes shout skip to the next song.
+SIGUSR1 makes shout reshuffle the internal playlist.
+SIGHUP makes shout re-read its configuration file.
+
+That's about all I can think of. As I said, direct all questions to
+eel@musiknet.se
+Cheers.
+

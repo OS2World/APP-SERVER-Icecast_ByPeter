@@ -1,0 +1,88 @@
+1.0.0
+~~~~~
+
+- Fixed the bug that caused icecast to only accept
+  encoder connections on every other connect.
+
+- Major overhaul of shout with bugfixes.
+
+0.9.0
+~~~~~
+
+- Icecast should now be relatively feature
+  complete for version 1.0.  We may add a few
+  things, but for the most part, we want to fix
+  outstanding bugs in this version before we
+  release 1.0.  It has also been tested on all the
+  platforms listed in the TESTED file.
+
+- Added javacast to the distribution.  Javacast is
+  not as feature complete as icecast, but provides
+  most basic features now.
+
+- Added server redirection functionality.  Icecast
+  can now use another *cast server as a source of
+  the stream.  This can be configured at the
+  command line or in the icecast.h file.
+
+- Fixed ctrl-c and signal handling
+
+- Added remote administration features.  You can
+  now telnet into another port (default 8002),
+  give a remote admin password, and then use the
+  console to get information about the server or
+  send it certain commands.  More functionality
+  will be introduced in version 1.1 of icecast.
+
+- Misc bugfixes
+
+0.8.2
+~~~~~
+
+- Added perl script to icedir to clean out the old
+  servers that didn't remove themselves.
+
+- Added index.phtml to icedir to give an example
+  of how to interface with the directory engine
+
+- Added a control-c handler to icecast to let it
+  shutdown a bit more gracefully although this
+  doesn't work quite right while waiting for an 
+  encoder
+
+- A few minor code cleanups in icecast
+
+- Bugfix to iceplay to prevent it from hogging the
+  processor by Steve Shreeve
+
+- Bugfix to use IO::Socket in iceplay instead of the
+  normal Socket interface (this fixes the weird 
+  glitches, although there is still an annoying
+  pause every minute on the dot :) by Edward Rudd
+  <eddie@omegaware.com>
+
+- Merged in the shout project with iceplay.  iceplay
+  is not longer the default encoder, we recommend
+  using shout, as it is much more robust, and
+  doesn't have any of the known iceplay bugs.  iceplay
+  will be included for reference only, and will 
+  probably no longer be developed (although patches
+  may still be applied)
+
+0.8.1
+~~~~~
+
+- Fixed a huge bug with zombie processes.  We
+  weren't catching the SIGCHLD signals and
+  cleaning up after the children.  
+
+- A smaller bug was found by Wolfram Ricter, which
+  apparently affected AIX platforms.
+
+- Updated iceplay documentation so that it mentioned
+  that it needed Time::HiRes to compile.
+
+0.8
+~~~
+
+Initial public release
